@@ -7,7 +7,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "dsh-browser": "./dist/cli.js"
+    "dsh-browser": "./dist/cli.cjs"
   },
   "exports": {
     ".": {
