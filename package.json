@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-browser",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Native Headless & Visible Web Browser Automation Agent for DeepSeek Harness (dsh)",
   "type": "module",
   "main": "dist/index.cjs",
