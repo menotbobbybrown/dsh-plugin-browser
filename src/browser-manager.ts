@@ -27,10 +27,48 @@ export class BrowserManager {
   }
 
   /**
+   * Validates target URL against SSRF and cloud metadata endpoints.
+   */
+  private validateUrlSafety(targetUrl: string): void {
+    let parsed: URL;
+    try {
+      parsed = new URL(targetUrl);
+    } catch {
+      throw new Error(`[Security] Invalid target URL: ${targetUrl}`);
+    }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`[Security] Forbidden protocol "${parsed.protocol}". Only http: and https: are allowed.`);
+    }
+
+    const host = parsed.hostname.toLowerCase();
+
+    // Check for loopback, cloud metadata, and private network ranges
+    const isPrivate =
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1' ||
+      host === '169.254.169.254' || // AWS/GCP/Azure IMDS
+      host.endsWith('.local') ||
+      host.endsWith('.internal') ||
+      /^10\.\d+\.\d+\.\d+$/.test(host) ||
+      /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(host) ||
+      /^192\.168\.\d+\.\d+$/.test(host);
+
+    if (isPrivate && !this.config.allowPrivateNetworks) {
+      throw new Error(`[Security] SSRF Guard: Blocked connection to restricted/private host "${host}".`);
+    }
+  }
+
+  /**
    * Navigates to a target URL.
    */
   public async navigate(url: string): Promise<NavigationResult> {
-    const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url);
+    const targetUrl = hasScheme ? url : `https://${url}`;
+    this.validateUrlSafety(targetUrl);
+
     const response = await fetch(targetUrl, {
       headers: {
         'User-Agent':
@@ -78,8 +116,15 @@ export class BrowserManager {
       fs.mkdirSync(this.screenshotDir, { recursive: true });
     }
 
-    const name = filename || `screenshot_${Date.now()}.png`;
-    const targetPath = path.join(this.screenshotDir, name);
+    // Sanitize filename to prevent directory traversal
+    const safeName = filename
+      ? path.basename(filename).replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+      : `screenshot_${Date.now()}.png`;
+
+    const targetPath = path.resolve(this.screenshotDir, safeName);
+    if (!targetPath.startsWith(path.resolve(this.screenshotDir))) {
+      throw new Error(`[Security] Path traversal attempt detected in screenshot filename.`);
+    }
 
     // Save metadata snapshot
     fs.writeFileSync(

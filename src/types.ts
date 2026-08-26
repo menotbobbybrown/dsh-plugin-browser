@@ -24,6 +24,11 @@ export interface DshBrowserPluginConfig {
     width: number;
     height: number;
   };
+  /**
+   * Explicitly allow navigation to local / private loopback addresses.
+   * Default: false (SSRF Protection Enabled)
+   */
+  allowPrivateNetworks?: boolean;
 }
 
 export interface NavigationResult {
