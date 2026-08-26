@@ -1,5 +1,5 @@
 {
-  "name": "dsh-plugin-browser",
+  "name": "@modelnorth/dsh-plugin-browser",
   "version": "1.0.0",
   "description": "Native Headless & Visible Web Browser Automation Agent for DeepSeek Harness (dsh)",
   "type": "module",
